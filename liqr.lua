@@ -1,12 +1,13 @@
 local lib = {}
 
 local function sortByScore(a, b) return a.score<b.score end
-function lib.filter(strs, search)
+function lib.filter(values, search, key)
     local results = {}
-    for originalIndex,str in ipairs(strs) do
-        local score, matches = lib.score(str, search)
+    for originalIndex,value in ipairs(values) do
+        local str = tostring(key and value[key] or value)
+        local score, matches = lib.match(str, search)
         if score < 1/0 then
-            results[#results+1] = {score=score, matches=matches, originalIndex=originalIndex, annotated=lib.annotatedString(str, matches)}
+            results[#results+1] = {score=score, matches=matches, originalIndex=originalIndex, bits=lib.annotatedString(str, matches)}
         end
     end
     table.sort(results, sortByScore)
@@ -18,18 +19,18 @@ function lib.annotatedString(str, matches)
     local start = 1
     for _,piece in ipairs(matches) do
         if piece.first>start then
-            bits[#bits+1] = {str=str:sub(start, piece.first-1), matched=false}
+            bits[#bits+1] = {str=str:sub(start, piece.first-1), match=false}
         end
-        bits[#bits+1] = {str=str:sub(piece.first, piece.last), matched=true}
+        bits[#bits+1] = {str=str:sub(piece.first, piece.last), match=true}
         start = piece.last + 1
     end
-    if start<#str then
-        bits[#bits+1] = {str=str:sub(start), matched=false}
+    if start<(#str+1) then
+        bits[#bits+1] = {str=str:sub(start), match=false}
     end
     return bits
 end
 
-function lib.score(str, search)
+function lib.match(str, search)
     local score = 0
     local stringStart, searchStart = 1, 1
     local matches = {}
@@ -86,14 +87,16 @@ function lib.score(str, search)
         end
         done = searchStart > #search
     end
-
+    if matches[2] or matches[1] and (matches[1].first>1 or matches[1].last<#str) then
+        score = score + 0.05
+    end
     return score, matches
 end
 
-function lib.asciiAnnotation(str, matches)
-    local annotations = lib.annotatedString(str, matches)
-    for i,bit in ipairs(annotations) do
-        annotations[i] = string[bit.matched and 'upper' or 'lower'](bit.str)
+function lib.uppercaseMatches(bits)
+    local annotations = {}
+    for i,bit in ipairs(bits) do
+        annotations[i] = string[bit.match and 'upper' or 'lower'](bit.str)
     end
     return table.concat(annotations)
 end

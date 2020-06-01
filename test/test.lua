@@ -37,7 +37,7 @@ end
 
 local function testNoMatch(str, search)
     lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
-    local score = liqr.score(str, search)
+    local score = liqr.match(str, search)
     if score==1/0 then
         lunity._lunityAssertsPassed = lunity._lunityAssertsPassed + 1
     else
@@ -47,7 +47,7 @@ end
 
 local function testMatches(str, search, expectedMatches)
     lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
-    local score, bits = liqr.score(str, search)
+    local score, bits = liqr.match(str, search)
     if bits then
         local ok = #bits==#expectedMatches
         if ok then
@@ -130,7 +130,15 @@ function test.prioritizeCamelCase()
     testNoMatch('abqd bar cat', 'bq')
 end
 
-function test.scoring()
+local function showFilter(phrases, search, key)
+    local results = liqr.filter(phrases, search, key)
+    print('\n-----------\n'..search)
+    for _,match in ipairs(results) do
+        print(match.score, liqr.highlightMatched(match.annotated))
+    end
+end
+
+function test.relativeScoring()
     local phrases = {
         'Money Slate Outhouse Hutment',
         'Topside Betake Bejewel Mouth',
@@ -171,20 +179,34 @@ function test.scoring()
     assertEqual(phrases[results[3].originalIndex], 'Indigent Wapiti Mail',           'Matches at the very beginning are better than start-of-word matches later')
     assertEqual(phrases[results[4].originalIndex], 'Topside Betake Bejewel Mouth',   'Multiple matches score lower than a single substring')
 
-    -- local function show(search)
-    --     local results = liqr.filter(phrases, search)
-    --     print('\n-----------\n'..search)
-    --     for _,match in ipairs(results) do
-    --         print(match.score, liqr.asciiAnnotation(phrases[match.originalIndex], match.matches))
-    --     end
-    -- end
-
     local results = liqr.filter(phrases, 'af')
     assertEqual(phrases[results[1].originalIndex], 'Outwash Author Infer Flamingo', 'Two matched word beginnings are better than a single two-character substring')
     assertEqual(phrases[results[2].originalIndex], 'Taffy Town', 'A single two-character substring is better than two substrings')
     assertEqual(phrases[results[3].originalIndex], 'Farrow Hood Infant', 'A single two-character substring is better than two substrings')
 end
 
+function test.filterAPI()
+    local function stringable(str, id)
+        return setmetatable({str=str, id=id}, {__tostring=function(t) return t.str end})
+    end
+    local strs = {'Abba', 'barn', 'cat'}
+    local objs = {}
+    for i,str in ipairs(strs) do objs[i] = stringable(str, 10+i) end
 
+    -- matching pure strings
+    local results = liqr.filter(strs, 'ba')
+    assertEqual(strs[results[1].originalIndex], 'barn')
+    assertEqual(strs[results[2].originalIndex], 'Abba')
+
+    -- matching against properties
+    local results = liqr.filter(objs, 'ba', 'str')
+    assertEqual(strs[results[1].originalIndex], 'barn')
+    assertEqual(strs[results[2].originalIndex], 'Abba')
+
+    -- matching against tostring()
+    local results = liqr.filter(objs, 'ba')
+    assertEqual(strs[results[1].originalIndex], 'barn')
+    assertEqual(strs[results[2].originalIndex], 'Abba')
+end
 
 test{useANSI=false}
