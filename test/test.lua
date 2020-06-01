@@ -36,7 +36,13 @@ local function dump(v,seen)
 end
 
 local function testNoMatch(str, search)
-    assertEqual(liqr.score(str, search), 1/0)
+    lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
+    local score = liqr.score(str, search)
+    if score==1/0 then
+        lunity._lunityAssertsPassed = lunity._lunityAssertsPassed + 1
+    else
+        error('Matching "'..search..'" against "'..str..'" failed.\nExpected: (no matches)\nActual:  '..dump(bits), 2)
+    end
 end
 
 local function testMatches(str, search, expectedMatches)
@@ -86,23 +92,6 @@ function test.prioritizeCamelCase()
          {first=5, last=5}}
     )
 
-    testMatches('Abcd Bar Cat', 'a',
-        {{first=1, last=1}}
-    )
-
-    -- Prefer word boundaries over earlier characters
-    testMatches('Abcd Bar Cat', 'b',
-        {{first=6, last=6}}
-    )
-    testMatches('abcd bar cat', 'b',
-        {{first=6, last=6}}
-    )
-
-    testMatches('Abcd Bar Cat', 'bc',
-        {{first=6, last=6},
-         {first=10, last=10}}
-    )
-
     -- Do not latch to word boundary if we're typing consecutive letters
     testMatches('Abcd Bar Cat', 'ab',
         {{first=1, last=2}}
@@ -116,40 +105,86 @@ function test.prioritizeCamelCase()
          {first=10, last=11}}
     )
 
-    -- We do not expect backtracking after latching onto a word boundary
-    -- This is unfortunate, but consistent with VS Code's filtering, e.g. "fld" failes to select "Fold Level 4"
-    testNoMatch('Abcd Bar Cat', 'acd')
-    testNoMatch('Abqd Bar Cat', 'bq')
-    testNoMatch('abqd bar cat', 'bq')
-
     -- Prefer sequences
     testMatches('Generate Colors from Current', 'gecu',
         {{first=1, last=2},
          {first=22, last=23}}
     )
+
+    -- Prefer word boundaries over earlier characters
+    testMatches('Abcd Bar Cat', 'b',
+        {{first=6, last=6}}
+    )
+    testMatches('abcd bar cat', 'b',
+        {{first=6, last=6}}
+    )
+    testMatches('Abcd Bar Cat', 'bc',
+        {{first=6, last=6},
+         {first=10, last=10}}
+    )
+
+    -- We do not expect backtracking after latching onto a word boundary
+    -- This is unfortunate, but consistent with VS Code's filtering, e.g. "fld" failes to select "Fold Level 4"
+    testNoMatch('Abcd Bar Cat', 'acd')
+    testNoMatch('Abqd Bar Cat', 'bq')
+    testNoMatch('abqd bar cat', 'bq')
 end
 
 function test.scoring()
     local phrases = {
         'Money Slate Outhouse Hutment',
         'Topside Betake Bejewel Mouth',
-        'Pithy Crumpet Ducktail Monster',
+        'Indigent Wapiti Mail',
         'Fissile Pitched Smirch Oxtail',
+        'Pithy Crumpet Ducktail Monster',
         'Britches Currier Smalto Listed',
         'Lagrange Exemplar Raisin Clang',
         'Zooist Beamy Diluvium Touristy',
         'Thither Sanative Stannic Nettle',
         'Edible Statued Devil Seepage',
         'Smithy Tenon Seaside Creepie',
+        'Taffy Town',
         'Outwash Author Infer Flamingo',
         'Fool Oversize Tenement Amount',
-        'Farrow Hospodar Infant',
-        'Indigent Wapiti Mail',
+        'Farrow Hood Infant',
         'Authored Triode Volt',
         'Stampede Multiped Gismo',
         'Humanoid Kale Ail',
         'Lesser Lipoid Salvia',
     }
+
+    local results = liqr.filter(phrases, 'zzz')
+    assertEqual(#results, 0)
+
+    local results = liqr.filter(phrases, 'farrow hood infant')
+    assertEqual(#results, 1)
+    assertEqual(results[1].score, 0.0)
+    assertEqual(phrases[results[1].originalIndex], 'Farrow Hood Infant')
+
+    local results = liqr.filter(phrases, 'fa ho inf')
+    assertEqual(#results, 1)
+    assertTrue(results[1].score > 0, 'Imperfect matches should have non-zero scores')
+
+    local results = liqr.filter(phrases, 'pit')
+    assertEqual(phrases[results[1].originalIndex], 'Pithy Crumpet Ducktail Monster', 'Matches at the very beginning are better than start-of-word matches later')
+    assertEqual(phrases[results[2].originalIndex], 'Fissile Pitched Smirch Oxtail',  'Matches at the very beginning are better than start-of-word matches later')
+    assertEqual(phrases[results[3].originalIndex], 'Indigent Wapiti Mail',           'Matches at the very beginning are better than start-of-word matches later')
+    assertEqual(phrases[results[4].originalIndex], 'Topside Betake Bejewel Mouth',   'Multiple matches score lower than a single substring')
+
+    -- local function show(search)
+    --     local results = liqr.filter(phrases, search)
+    --     print('\n-----------\n'..search)
+    --     for _,match in ipairs(results) do
+    --         print(match.score, liqr.asciiAnnotation(phrases[match.originalIndex], match.matches))
+    --     end
+    -- end
+
+    local results = liqr.filter(phrases, 'af')
+    assertEqual(phrases[results[1].originalIndex], 'Outwash Author Infer Flamingo', 'Two matched word beginnings are better than a single two-character substring')
+    assertEqual(phrases[results[2].originalIndex], 'Taffy Town', 'A single two-character substring is better than two substrings')
+    assertEqual(phrases[results[3].originalIndex], 'Farrow Hood Infant', 'A single two-character substring is better than two substrings')
 end
+
+
 
 test{useANSI=false}
