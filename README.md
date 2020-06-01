@@ -21,7 +21,7 @@ inspect(matches)
 -->    {first=28, last=28}  "l" character in "Oxtail"
 --> }
 
--- A failed match has a score of Infinity and no 'matches' result
+-- A failed match returns only a score of infinity
 local score, matches = liqr.match('dog', 'cat')
 print(score, matches)
 --> inf  nil 
@@ -41,6 +41,7 @@ local menu = {
     {id=8, label='Taffy Town'},
     {id=9, label='Outwash Author Infer Flamingo'},
 }
+
 
 -- Simply finding the names of the matching items
 -- The optional third parameter indicates that the items are tables, and matches against this key

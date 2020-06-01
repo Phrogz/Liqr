@@ -134,7 +134,7 @@ local function showFilter(phrases, search, key)
     local results = liqr.filter(phrases, search, key)
     print('\n-----------\n'..search)
     for _,match in ipairs(results) do
-        print(match.score, liqr.highlightMatched(match.annotated))
+        print(match.score, liqr.uppercaseMatches(match.annotated))
     end
 end
 
