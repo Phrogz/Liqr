@@ -1,6 +1,8 @@
 package.path = '../?.lua;?.lua'
+_ENV = require('lunity')('Test Liqr')
+local lunity = getmetatable(_ENV).__index
+
 local liqr = require 'liqr'
-_ENV = require('lunity')()
 
 local function dump(v,seen)
     seen = seen or {}
@@ -38,6 +40,7 @@ local function testNoMatch(str, search)
 end
 
 local function testMatches(str, search, expectedMatches)
+    lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
     local score, bits = liqr.score(str, search)
     if bits then
         local ok = #bits==#expectedMatches
@@ -51,12 +54,14 @@ local function testMatches(str, search, expectedMatches)
         if not ok then
             error('Matching "'..search..'" against "'..str..'" failed.\nExpected: '..dump(expectedMatches)..'\nActual:  '..dump(bits), 2)
         end
+        lunity._lunityAssertsPassed = lunity._lunityAssertsPassed + 1
+        io.write('.')
     else
         error('Expected a match, but got none', 2)
     end
 end
 
-function test.all()
+function test.basicMatching()
     testNoMatch('foo bar', 'q')
     testMatches('foo bar', 'f',
         {{first=1, last=1}}
@@ -72,21 +77,33 @@ function test.all()
         {{first=1, last=2},
          {first=5, last=5}}
     )
+end
+
+function test.prioritizeCamelCase()
+    -- Ensure that case-insensitive searching works
     testMatches('Foo Bar', 'fob',
         {{first=1, last=2},
          {first=5, last=5}}
     )
-    
+
     testMatches('Abcd Bar Cat', 'a',
         {{first=1, last=1}}
     )
+
+    -- Prefer word boundaries over earlier characters
     testMatches('Abcd Bar Cat', 'b',
         {{first=6, last=6}}
     )
+    testMatches('abcd bar cat', 'b',
+        {{first=6, last=6}}
+    )
+
     testMatches('Abcd Bar Cat', 'bc',
         {{first=6, last=6},
          {first=10, last=10}}
     )
+
+    -- Do not latch to word boundary if we're typing consecutive letters
     testMatches('Abcd Bar Cat', 'ab',
         {{first=1, last=2}}
     )
@@ -98,14 +115,41 @@ function test.all()
         {{first=1, last=1},
          {first=10, last=11}}
     )
-    testMatches('Abcd Bar Cat', 'acd',
-        {{first=1, last=1},
-         {first=3, last=4}}
-    )
 
-    testMatches('Abqd Bar Cat', 'bq',
-        {{first=2, last=3}}
+    -- We do not expect backtracking after latching onto a word boundary
+    -- This is unfortunate, but consistent with VS Code's filtering, e.g. "fld" failes to select "Fold Level 4"
+    testNoMatch('Abcd Bar Cat', 'acd')
+    testNoMatch('Abqd Bar Cat', 'bq')
+    testNoMatch('abqd bar cat', 'bq')
+
+    -- Prefer sequences
+    testMatches('Generate Colors from Current', 'gecu',
+        {{first=1, last=2},
+         {first=22, last=23}}
     )
 end
 
-test()
+function test.scoring()
+    local phrases = {
+        'Money Slate Outhouse Hutment',
+        'Topside Betake Bejewel Mouth',
+        'Pithy Crumpet Ducktail Monster',
+        'Fissile Pitched Smirch Oxtail',
+        'Britches Currier Smalto Listed',
+        'Lagrange Exemplar Raisin Clang',
+        'Zooist Beamy Diluvium Touristy',
+        'Thither Sanative Stannic Nettle',
+        'Edible Statued Devil Seepage',
+        'Smithy Tenon Seaside Creepie',
+        'Outwash Author Infer Flamingo',
+        'Fool Oversize Tenement Amount',
+        'Farrow Hospodar Infant',
+        'Indigent Wapiti Mail',
+        'Authored Triode Volt',
+        'Stampede Multiped Gismo',
+        'Humanoid Kale Ail',
+        'Lesser Lipoid Salvia',
+    }
+end
+
+test{useANSI=false}

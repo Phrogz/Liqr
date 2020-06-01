@@ -1,5 +1,5 @@
 --[=========================================================================[
-   Lunity v0.13 by Gavin Kistner
+   Based on Lunity v0.13 by Gavin Kistner (modified)
    See http://github.com/Phrogz/Lunity for usage documentation.
    Licensed under Creative Commons Attribution 3.0 United States License.
    See http://creativecommons.org/licenses/by/3.0/us/ for details.
@@ -8,26 +8,24 @@
 -- Cache these so we can silence the real ones during a run
 local print,write = print,io.write
 
--- FIXME: this will fail if two test suites are running interleaved
-local assertsPassed, assertsAttempted
-local function assertionSucceeded()
-	assertsPassed = assertsPassed + 1
-	write('.')
-	return true
-end
-
 -- This is the table that will be used as the environment for the tests,
 -- making assertions available within the file.
 local lunity = setmetatable({}, {__index=_G})
 
+local function assertionSucceeded()
+	lunity._lunityAssertsPassed = lunity._lunityAssertsPassed + 1
+	write('.')
+	return true
+end
+
 function lunity.fail(msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if not msg then msg = "(test failure)" end
 	error(msg, 2)
 end
 
 function lunity.assert(testCondition, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if not testCondition then
 		if not msg then msg = "assert() failed: value was "..tostring(testCondition) end
 		error(msg, 2)
@@ -36,7 +34,7 @@ function lunity.assert(testCondition, msg)
 end
 
 function lunity.assertEqual(actual, expected, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if actual~=expected then
 		if not msg then
 			msg = string.format("assertEqual() failed: expected %s, was %s",
@@ -50,7 +48,7 @@ function lunity.assertEqual(actual, expected, msg)
 end
 
 function lunity.assertType(actual, expectedType, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if type(actual) ~= expectedType then
 		if not msg then
 			msg = string.format("assertType() failed: value %s is a %s, expected to be a %s",
@@ -65,7 +63,7 @@ function lunity.assertType(actual, expectedType, msg)
 end
 
 function lunity.assertTableEquals(actual, expected, msg, keyPath)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	-- Easy out
 	if actual == expected then
 		if not keyPath then
@@ -126,7 +124,7 @@ function lunity.assertTableEquals(actual, expected, msg, keyPath)
 end
 
 function lunity.assertNotEqual(actual, expected, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if actual==expected then
 		if not msg then
 			msg = string.format("assertNotEqual() failed: value not allowed to be %s",
@@ -139,7 +137,7 @@ function lunity.assertNotEqual(actual, expected, msg)
 end
 
 function lunity.assertTrue(actual, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if actual ~= true then
 		if not msg then
 			msg = string.format("assertTrue() failed: value was %s, expected true",
@@ -152,7 +150,7 @@ function lunity.assertTrue(actual, msg)
 end
 
 function lunity.assertFalse(actual, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if actual ~= false then
 		if not msg then
 			msg = string.format("assertFalse() failed: value was %s, expected false",
@@ -165,7 +163,7 @@ function lunity.assertFalse(actual, msg)
 end
 
 function lunity.assertNil(actual, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if actual ~= nil then
 		if not msg then
 			msg = string.format("assertNil() failed: value was %s, expected nil",
@@ -178,7 +176,7 @@ function lunity.assertNil(actual, msg)
 end
 
 function lunity.assertNotNil(actual, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if actual == nil then
 		if not msg then msg = "assertNotNil() failed: value was nil" end
 		error(msg, 2)
@@ -187,7 +185,7 @@ function lunity.assertNotNil(actual, msg)
 end
 
 function lunity.assertTableEmpty(actual, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if type(actual) ~= "table" then
 		msg = string.format("assertTableEmpty() failed: expected a table, but got a %s",
 			type(actual)
@@ -209,7 +207,7 @@ function lunity.assertTableEmpty(actual, msg)
 end
 
 function lunity.assertTableNotEmpty(actual, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	if type(actual) ~= "table" then
 		msg = string.format("assertTableNotEmpty() failed: expected a table, but got a %s",
 			type(actual)
@@ -227,7 +225,7 @@ function lunity.assertTableNotEmpty(actual, msg)
 end
 
 function lunity.assertSameKeys(t1, t2, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	local function bail(k,x,y)
 		if not msg then msg = string.format("Table #%d has key '%s' not present in table #%d",x,tostring(k),y) end
 		error(msg, 3)
@@ -239,7 +237,7 @@ end
 
 -- Ensures that the value is a function OR may be called as one
 function lunity.assertInvokable(value, msg)
-	assertsAttempted = assertsAttempted + 1
+	lunity._lunityAssertsAttempted = lunity._lunityAssertsAttempted + 1
 	local meta = getmetatable(value)
 	if (type(value) ~= 'function') and not (meta and meta.__call and (type(meta.__call)=='function')) then
 		if not msg then
@@ -290,8 +288,8 @@ local function run(self, opts)
 		io.write = function() end
 	end
 
-	assertsPassed = 0
-	assertsAttempted = 0
+	lunity._lunityAssertsPassed = 0
+	lunity._lunityAssertsAttempted = 0
 
 	local useANSI,useHTML = true, false
 	if opts.useHTML ~= nil then useHTML=opts.useHTML end
@@ -360,10 +358,10 @@ local function run(self, opts)
 	if useHTML then print("<br>") end
 
 	print(string.format("%d total successful assertion%s in ~%.0fms (%.0f assertions/second)",
-		assertsPassed,
-		assertsPassed == 1 and "" or "s",
+		lunity._lunityAssertsPassed,
+		lunity._lunityAssertsPassed == 1 and "" or "s",
 		elapsed*1000,
-		assertsAttempted / elapsed
+		lunity._lunityAssertsAttempted / elapsed
 	))
 
 	if not useHTML then print("") end

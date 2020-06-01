@@ -21,7 +21,14 @@ function lib.score(str, search)
         local anycase = '['..char:lower()..char:upper()..']'
         local at = str:find(anycase, start)
         if at~=start then
-            at = str:find(char:upper(), start) or str:find(anycase, start)
+            at = str:find(char:upper(), start)
+            if not at then
+                at = str:find(' '..anycase, start-1)
+                if at then at = at + 1 end
+            end
+            if not at then
+                at = str:find(anycase, start)
+            end
         end
         if not at then return 1/0 end
         local literal = str:sub(at,at)
