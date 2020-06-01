@@ -1,5 +1,9 @@
 # Liqr
-Substring filtering for Lua
+Substring filtering for Lua.
+
+In general, sequential matches and matches at word boundaries—including the boundaries
+of capital letters appearing in camelCaseDescriptors—are prioritized over spread out,
+mid-word matches.
 
 ## Matching a Single String
 
@@ -40,6 +44,7 @@ local menu = {
 
 -- Simply finding the names of the matching items
 -- The optional third parameter indicates that the items are tables, and matches against this key
+-- With no third parameter `tostring()` is invoked on each list entry to find the string to match against
 local results = liqr.filter(menu, 'cr', 'label')
 for i,match in ipairs(results) do
     print(i, menu[match.originalIndex].label)
@@ -49,7 +54,7 @@ end
 --> 3	Fissile Pitched Birch Oxtail
 
 
--- All data embedded in the results
+-- Showing the data available in the results
 local results = liqr.filter(menu, 'bea', 'label')
 --> {
 -->   {score=0.15, originalIndex=7, matches={{first=5, last=7}},
@@ -73,7 +78,8 @@ local results = liqr.filter(menu, 'bea', 'label')
 -->          {match=false, str="ll"}}}}
 --> }
 
--- Special function to 
+
+-- Showing how to concatenate the `bits` to construct a string that highlights the matches
 local function showTop5(search)
     for i,result in ipairs(liqr.filter(menu, search, 'label')) do
         if i>5 then break end
