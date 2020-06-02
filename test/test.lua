@@ -87,47 +87,45 @@ end
 
 function test.prioritizeCamelCase()
     -- Ensure that case-insensitive searching works
-    testMatches('Foo Bar', 'fob',
-        {{first=1, last=2},
-         {first=5, last=5}}
-    )
+    testMatches('foo bar', 'fob', {{first=1, last=2},{first=5, last=5}})
+    testMatches('Foo Bar', 'fob', {{first=1, last=2},{first=5, last=5}})
+    testMatches('FooBar',  'fob', {{first=1, last=2},{first=4, last=4}})
 
     -- Do not latch to word boundary if we're typing consecutive letters
-    testMatches('Abcd Bar Cat', 'ab',
-        {{first=1, last=2}}
-    )
-    testMatches('Abcd Bar Cat', 'ac',
-        {{first=1, last=1},
-         {first=10, last=10}}
-    )
-    testMatches('Abcd Bar Cat', 'aca',
-        {{first=1, last=1},
-         {first=10, last=11}}
-    )
+    testMatches('abcd bar cat', 'ab', {{first=1, last=2}})
+    testMatches('Abcd Bar Cat', 'ab', {{first=1, last=2}})
+    testMatches('AbcdBarCat',   'ab', {{first=1, last=2}})
+
+    testMatches('abcd bar cat', 'ac', {{first=1, last=1},{first=10, last=10}})
+    testMatches('Abcd Bar Cat', 'ac', {{first=1, last=1},{first=10, last=10}})
+    testMatches('AbcdBarCat',   'ac', {{first=1, last=1},{first=8,  last=8}})
+
+    testMatches('abcd bar cat', 'aca', {{first=1, last=1},{first=10, last=11}})
+    testMatches('Abcd Bar Cat', 'aca', {{first=1, last=1},{first=10, last=11}})
+    testMatches('AbcdBarCat',   'aca', {{first=1, last=1},{first=8,  last=9}})
 
     -- Prefer sequences
-    testMatches('Generate Colors from Current', 'gecu',
-        {{first=1, last=2},
-         {first=22, last=23}}
-    )
+    testMatches('generate colors from current', 'gecu', {{first=1, last=2},{first=22, last=23}})
+    testMatches('Generate Colors from Current', 'gecu', {{first=1, last=2},{first=22, last=23}})
+    testMatches('GenerateColorsfromCurrent',    'gecu', {{first=1, last=2},{first=19, last=20}})
 
     -- Prefer word boundaries over earlier characters
-    testMatches('Abcd Bar Cat', 'b',
-        {{first=6, last=6}}
-    )
-    testMatches('abcd bar cat', 'b',
-        {{first=6, last=6}}
-    )
-    testMatches('Abcd Bar Cat', 'bc',
-        {{first=6, last=6},
-         {first=10, last=10}}
-    )
+    testMatches('abcd bar cat', 'b', {{first=6, last=6}})
+    testMatches('Abcd Bar Cat', 'b', {{first=6, last=6}})
+    testMatches('AbcdBarCat',   'b', {{first=5, last=5}})
+
+    testMatches('abcd bar cat', 'bc', {{first=6, last=6},{first=10, last=10}})
+    testMatches('Abcd Bar Cat', 'bc', {{first=6, last=6},{first=10, last=10}})
+    testMatches('AbcdBarCat',   'bc', {{first=5, last=5},{first=8,  last=8}})
 
     -- We do not expect backtracking after latching onto a word boundary
     -- This is unfortunate, but consistent with VS Code's filtering, e.g. "fld" failes to select "Fold Level 4"
+    testNoMatch('abcd bar cat', 'acd')
     testNoMatch('Abcd Bar Cat', 'acd')
-    testNoMatch('Abqd Bar Cat', 'bq')
+    testNoMatch('AbcdBarCat',   'acd')
     testNoMatch('abqd bar cat', 'bq')
+    testNoMatch('Abqd Bar Cat', 'bq')
+    testNoMatch('AbqdBarCat',   'bq')
 end
 
 local function showFilter(phrases, search, key)
