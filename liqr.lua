@@ -1,20 +1,23 @@
-local lib = {}
+-- Liqr v0.8; see http://github.com/Phrogz/Liqr for usage
+-- Copyright 2020 Gavin Kistner; licensed under the MIT License
+
+local liqr = {}
 
 local function sortByScore(a, b) return a.score<b.score end
-function lib.filter(values, search, key)
+function liqr.filter(values, search, key)
     local results = {}
     for originalIndex,value in ipairs(values) do
         local str = tostring(key and value[key] or value)
-        local score, matches = lib.match(str, search)
+        local score, matches = liqr.match(str, search)
         if score < 1/0 then
-            results[#results+1] = {score=score, matches=matches, originalIndex=originalIndex, bits=lib.annotatedString(str, matches)}
+            results[#results+1] = {score=score, matches=matches, originalIndex=originalIndex, bits=liqr.annotatedString(str, matches)}
         end
     end
     table.sort(results, sortByScore)
     return results
 end
 
-function lib.annotatedString(str, matches)
+function liqr.annotatedString(str, matches)
     local bits = {}
     local start = 1
     for _,piece in ipairs(matches) do
@@ -30,7 +33,7 @@ function lib.annotatedString(str, matches)
     return bits
 end
 
-function lib.match(str, search)
+function liqr.match(str, search)
     local score = 0
     local stringStart, searchStart = 1, 1
     local matches = {}
@@ -93,7 +96,7 @@ function lib.match(str, search)
     return score, matches
 end
 
-function lib.uppercaseMatches(bits)
+function liqr.uppercaseMatches(bits)
     local annotations = {}
     for i,bit in ipairs(bits) do
         annotations[i] = string[bit.match and 'upper' or 'lower'](bit.str)
@@ -101,4 +104,4 @@ function lib.uppercaseMatches(bits)
     return table.concat(annotations)
 end
 
-return lib
+return liqr
