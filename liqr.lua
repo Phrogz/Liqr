@@ -39,9 +39,10 @@ function liqr.match(str, search)
     local matches = {}
     local done = false
 
-    while not done do
+    local searchCharCount = #search
+    while searchStart <= searchCharCount do
         local foundAtThisStart = false
-        for searchStop=#search,searchStart,-1 do
+        for searchStop=searchCharCount, searchStart, -1 do
             local caseInsensitive = {}
             local upperCaseFirst = {}
             local spaceFirst = {}
@@ -88,7 +89,6 @@ function liqr.match(str, search)
         if not foundAtThisStart then
             return 1/0
         end
-        done = searchStart > #search
     end
     if matches[2] or matches[1] and (matches[1].first>1 or matches[1].last<#str) then
         score = score + 0.05
